@@ -14,8 +14,7 @@ interface HttpClientInterface {
     fun request(
         method: HttpMethod,
         url: String,
-        body: Json? = null,
-        headers: Iterable<HttpHeader> = emptyList(),
-        responseHandler: HttpResponse.() -> Unit
+        body: Map<String, Any?>? = null,
+        headers: Iterable<HttpHeader> = emptyList()
     ): HttpResponse
 }

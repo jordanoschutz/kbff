@@ -13,7 +13,7 @@ data class HttpResponse(
      * Response content.
      * It is null when content is not provided.
      */
-    val content: Json?
+    val content: Map<String, Any?>?
 ) {
     /**
      * True iff. [status] is in the interval [200, 300).
