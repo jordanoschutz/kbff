@@ -14,7 +14,6 @@ import kotlinx.coroutines.runBlocking
 import me.jschutz.kbff.http.*
 import me.jschutz.kbff.http.HttpMethod
 import me.jschutz.kbff.http.HttpResponse
-import java.lang.annotation.Inherited
 import io.ktor.http.HttpMethod.Companion as KtorHttpMethod
 
 /**
@@ -48,7 +47,10 @@ internal class KtorHttpClient(
             @Suppress("UNCHECKED_CAST")
             HttpResponse(
                 status = status.value,
-                content = mapper.readValue(responseContent, Map::class.java) as Map<String, Any?>?
+                content = if (responseContent.isBlank()) null else mapper.readValue(
+                    responseContent,
+                    Map::class.java
+                ) as Map<String, Any?>?
             )
         }
     }

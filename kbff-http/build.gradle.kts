@@ -14,6 +14,7 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.1")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.1")
     testImplementation("io.ktor:ktor-client-mock:2.2.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.8.1")
     // todo: use Mockk or Mockito?
     // testImplementation("io.mockk:mockk:1.13.3")
 

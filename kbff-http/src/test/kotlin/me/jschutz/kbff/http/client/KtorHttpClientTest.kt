@@ -1,76 +1,71 @@
-package me.jschutz.kbff.http
+package me.jschutz.kbff.http.client
 
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.*
 import io.ktor.http.*
+import me.jschutz.kbff.http.HttpHeader
+import me.jschutz.kbff.http.HttpMethod
 import me.jschutz.kbff.http.impl.KtorHttpClient
 import me.jschutz.kbff.http.utils.mapsAreEquals
 import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ArgumentsSource
 import java.util.*
 
 class KtorHttpClientTest {
     private val mapper by lazy { jacksonObjectMapper() }
 
-    @Test
-    fun `GET successful with response body`() {
-        val expectedResponse = mapOf(
-            "name" to "my name",
-            "age" to 30,
-            "status" to true
-        )
-        val url = mountUrl("resource/get")
+    @ParameterizedTest(name = "{1} {4} with request {2} and response {3}")
+    @ArgumentsSource(SuccessfulRequestProvider::class)
+    fun `HTTP request successful`(
+        uri: String,
+        method: HttpMethod,
+        requestBody: Map<String, Any?>?,
+        responseBody: Map<String, Any?>?,
+        expectedResponseStatus: HttpStatusCode
+    ) {
         val ktorClient = newKtorClient(
-            url = url,
-            responseBody = mapper.writeValueAsString(expectedResponse),
-            httpStatus = HttpStatusCode.OK
+            url = uri,
+            responseBody = responseBody?.let { mapper.writeValueAsString(it) } ?: "",
+            httpStatus = expectedResponseStatus
         )
-
         val response = ktorClient.request(
-            method = HttpMethod.Get,
-            url = url
+            method = method,
+            url = uri,
+            requestBody,
+            headers = listOf(HttpHeader(name = "X-Test-Id", value = UUID.randomUUID().toString()))
         )
 
         assertTrue(response.isSuccessful)
-        assertEquals(HttpStatusCode.OK.value, response.status)
+        assertEquals(expectedResponseStatus.value, response.status)
         response.content.let {
-            assertNotNull(it)
-            assertTrue(mapsAreEquals(expectedResponse, it!!))
+            if (responseBody === null) {
+                assertTrue(it.isNullOrEmpty())
+            } else {
+                assertNotNull(it)
+                assertTrue(mapsAreEquals(responseBody, it!!))
+            }
         }
     }
 
-    @Test
-    fun `POST successful with request and response bodies`() {
-        val expectedResponse = mapOf(
-            "id" to UUID.randomUUID().toString(),
-            "created_at" to "2023-01-01 00:00:00"
-        )
-        val url = mountUrl("resource/post")
+    @ParameterizedTest(name = "{1} returns {2}")
+    @ArgumentsSource(UnsuccessfulRequestProvider::class)
+    fun `HTTP request unsuccessful`(uri: String, method: HttpMethod, expectedStatusError: HttpStatusCode) {
         val ktorClient = newKtorClient(
-            url = url,
-            responseBody = mapper.writeValueAsString(expectedResponse),
-            httpStatus = HttpStatusCode.Created
+            url = uri,
+            responseBody = "",
+            httpStatus = expectedStatusError
         )
-
         val response = ktorClient.request(
-            method = HttpMethod.Post,
-            url = url,
-            body = mapOf(
-                "name" to "some name",
-                "value" to 3.14,
-                "new_born" to true,
-                "fingers" to 20
-            )
+            method = method,
+            url = uri
         )
 
-        assertTrue(response.isSuccessful)
-        assertEquals(HttpStatusCode.Created.value, response.status)
-        response.content.let {
-            assertNotNull(it)
-            assertTrue(mapsAreEquals(expectedResponse, it!!))
-        }
+        assertFalse(response.isSuccessful)
+        assertEquals(expectedStatusError.value, response.status)
+        assertTrue(response.content.isNullOrEmpty())
     }
 
     /**
@@ -107,9 +102,4 @@ class KtorHttpClientTest {
             }
         }
     }
-
-    /**
-     * Adjusts [target] to match [KtorHttpClient] normalized URL on requests.
-     */
-    private fun mountUrl(target: String) = "http://localhost/$target"
 }
